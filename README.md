@@ -205,10 +205,3 @@ Para configurar o banco de dados a partir do zero, recomenda-se executar os arqu
 **Importante:** o arquivo `script_projeto.sql` deve ser executado somente quando houver intenção de reconstruir o banco do zero, pois ele remove o banco `mydb` existente antes de criá-lo novamente.
 
 ---
-
-## 🛠️ Tecnologias Utilizadas
-
-- MySQL
-- MySQL Workbench
-- SQL
-- Git e GitHub
