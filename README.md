@@ -9,7 +9,7 @@
 **Sistema Inteligente de Gerenciamento e Monitoramento de Estacionamento**
 
 ## 📝 Descrição do Tema
-O projeto consiste na modelagem e desenvolvimento de um banco de dados para um sistema de estacionamento automatizado. O fluxo principal realiza o cadastro de clientes e seus respectivos veículos. A estrutura do pátio é dividida pela entidade Setor, responsável por agrupar as vagas disponíveis. 
+O projeto consiste na modelagem e desenvolvimento de um banco de dados para um sistema de estacionamento automatizado. O fluxo principal realiza o cadastro de clientes e seus respectivos veículos. A estrutura do pátio é dividida pela entidade Setor, responsável por agrupar as vagas disponíveis.
 
 Para a automação do espaço, cada vaga conta com um Dispositivo de Detecção (sensor IoT) exclusivo para monitorar a ocupação em tempo real. Por fim, o histórico de uso e movimentação do pátio é controlado por meio dos Registros de Estacionamento, que associam a utilização dos veículos às vagas ao longo do tempo.
 
@@ -68,6 +68,17 @@ O modelo relacional foi estruturado no **MySQL Workbench** e conta com 6 entidad
 
 ---
 
+## ⚙️ Implementação Extra — Liberação Automática de Vagas
+
+Foi desenvolvida uma **TRIGGER** para automatizar a liberação das vagas do estacionamento após a saída dos veículos.
+
+A TRIGGER `liberar_vaga` é executada após uma atualização na tabela `Registro_Estacionamento`. Quando a data de saída de um veículo é registrada, o sistema atualiza automaticamente o campo `ocupação` da vaga correspondente para `0` (livre).
+
+Essa implementação evita a necessidade de liberar a vaga manualmente, facilitando o controle de ocupação do estacionamento.
+
+---
+
 ## 📁 Arquivos do Repositório
 * `Modelo_Projeto(C07)_Estacionamento.mwb`: Arquivo de modelagem gerado pelo MySQL Workbench.
 * `README.md`: Documentação oficial com especificações e alinhamento do grupo.
+* `trigger.sql`: Implementação extra para liberação automática de vagas após a saída dos veículos.
