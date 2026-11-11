@@ -144,19 +144,49 @@ São inseridos, no mínimo, cinco registros em cada uma das seis tabelas:
 - Vaga;
 - Registro_Estacionamento.
 
-As inserções são realizadas dentro de uma transação, finalizada pelo comando `COMMIT`.
-
 **`manipulacao_dados.sql`**
 
 Script utilizado para demonstrar comandos de manipulação de dados (DML), por meio de `INSERT`, `UPDATE` e `DELETE`.
 
-As operações realizadas incluem:
+As operações simulam situações comuns do funcionamento de um estacionamento e permitem verificar as alterações realizadas nas tabelas.
 
-- **UPDATE:** registra a saída de um veículo e altera a ocupação da vaga correspondente para livre.
-- **INSERT:** cria um registro de estacionamento com datas inconsistentes, para demonstrar a inserção de dados.
-- **DELETE:** remove o registro incorreto após sua verificação.
+**1. Registro da saída de um veículo (UPDATE)**
 
-As operações são realizadas dentro de uma transação, finalizada com `COMMIT`.
+Inicialmente, o script atualiza o registro de estacionamento de ID 2, preenchendo sua data e horário de saída com `2026-11-03 12:00:00`.
+
+Esse registro corresponde ao veículo de ID 2, que estava utilizando a vaga B-01 (ID 2).
+
+Em seguida, a coluna `ocupação` da vaga de ID 2 é atualizada para `0`, indicando que a vaga foi liberada.
+
+Dois comandos `SELECT` são executados para verificar as alterações:
+
+- A consulta em `Registro_Estacionamento` apresenta a saída registrada do veículo.
+- A consulta em `Vaga` confirma que a vaga B-01 passou a apresentar ocupação igual a `0` (livre).
+
+**2. Inserção de um registro inconsistente (INSERT)**
+
+O script realiza uma inserção propositalmente incorreta na tabela `Registro_Estacionamento`.
+
+O registro utiliza os seguintes dados:
+
+- Data e horário de entrada: `2026-12-04 13:00:00`.
+- Data e horário de saída: `2026-11-03 13:05:00`.
+- Veículo: ID 5.
+- Vaga: ID 5.
+
+O registro é inconsistente porque a data de saída é anterior à data de entrada.
+
+Após a inserção, um comando `SELECT` consulta o registro pela data de entrada, permitindo verificar que os dados foram armazenados.
+
+**3. Exclusão do registro inconsistente (DELETE)**
+
+Depois de verificar o registro incorreto, o script utiliza `DELETE` para removê-lo da tabela `Registro_Estacionamento`.
+
+A exclusão utiliza as informações do próprio registro para identificar exatamente a linha que deve ser removida.
+
+Um último `SELECT` consulta novamente a data de entrada utilizada na inserção. Como o registro foi excluído, a consulta não retorna resultados.
+
+As operações são realizadas dentro de uma transação, iniciada por `START TRANSACTION` e finalizada com `COMMIT`. Dessa forma, as alterações válidas são confirmadas, enquanto o registro inconsistente é removido antes da confirmação.
 
 **`usuarios_roles.sql`**
 
@@ -178,17 +208,89 @@ A ROLE é concedida aos dois usuários e configurada como padrão para suas cone
 
 **`consultas_join.sql`**
 
-Script responsável por realizar consultas utilizando JOIN, demonstrando os três tipos de relacionamentos presentes no modelo: 1:1, 1:N e N:M.
+Script responsável por realizar consultas utilizando `INNER JOIN`, demonstrando os três tipos de relacionamentos presentes no modelo: 1:1, 1:N e N:M.
 
-Para complementar os dados utilizados nas consultas, o arquivo também insere um veículo adicional para um cliente já cadastrado e dois registros de estacionamento.
+Antes das consultas, são inseridos dados adicionais para ampliar os resultados e demonstrar melhor os relacionamentos:
 
-As consultas implementadas incluem:
+- Um veículo Volkswagen Polo, de placa `RST5U67`, associado ao cliente de ID 1 (Ana Souza).
+- Um registro de estacionamento do veículo de ID 1 na vaga de ID 3, correspondente à vaga VIP-01, em `2026-11-04`.
+- Um registro de estacionamento do veículo de ID 3 na vaga de ID 1, correspondente à vaga A-01, em `2026-11-05`.
 
-- **Relacionamento 1:1:** relaciona as vagas aos seus respectivos dispositivos de detecção.
-- **Relacionamento 1:N:** apresenta os clientes e seus respectivos veículos.
-- **Relacionamento N:M:** apresenta os veículos e as vagas utilizadas ao longo do tempo, utilizando a tabela intermediária `Registro_Estacionamento`.
-- **Consulta completa:** reúne informações de clientes, veículos, vagas, setores, dispositivos e registros de estacionamento.
-- **Consulta com agrupamento:** identifica os veículos que possuem mais de um registro de estacionamento, utilizando `COUNT`, `GROUP BY` e `HAVING`.
+Essas inserções complementam os dados iniciais e permitem demonstrar situações em que um cliente possui mais de um veículo e em que um veículo utiliza diferentes vagas ao longo do tempo.
+
+### Consultas realizadas
+
+**1. Relacionamento 1:1 — Vaga e Dispositivo**
+
+A primeira consulta relaciona as tabelas `Vaga` e `Dispositovo_Detecção`, utilizando a chave estrangeira `Dispositovo_Detecção_id`.
+
+O resultado apresenta o código de cada vaga e o ID do dispositivo de detecção associado.
+
+São retornadas cinco linhas, correspondentes às cinco vagas cadastradas:
+
+- A-01 → Dispositivo 1.
+- B-01 → Dispositivo 2.
+- C-01 → Dispositivo 4.
+- D-01 → Dispositivo 5.
+- VIP-01 → Dispositivo 3.
+
+Essa consulta demonstra que cada vaga está associada a um dispositivo exclusivo.
+
+**2. Relacionamento 1:N — Cliente e Veículo**
+
+A segunda consulta relaciona `Cliente` e `Veiculo` por meio da chave estrangeira `Cliente_id`.
+
+O resultado apresenta o nome do cliente, a placa e o modelo de cada veículo cadastrado.
+
+São retornadas seis linhas, pois o cliente Ana Souza possui dois veículos, enquanto os outros quatro clientes possuem um veículo cada.
+
+O resultado demonstra que um mesmo cliente pode estar relacionado a vários veículos.
+
+**3. Relacionamento N:M — Veículo e Vaga**
+
+A terceira consulta relaciona `Veiculo`, `Registro_Estacionamento` e `Vaga`.
+
+A tabela `Registro_Estacionamento` funciona como intermediária, permitindo identificar quais veículos utilizaram quais vagas ao longo do tempo.
+
+O resultado apresenta a placa e o modelo do veículo, o código da vaga utilizada e as datas e horários de entrada e saída.
+
+São retornadas sete linhas, correspondentes aos sete registros de estacionamento existentes.
+
+Um mesmo veículo pode aparecer mais de uma vez, pois cada linha representa uma utilização de vaga em determinado momento.
+
+Esse resultado demonstra o relacionamento N:M entre veículos e vagas.
+
+**4. Consulta completa das informações do estacionamento**
+
+A quarta consulta reúne as seis tabelas do banco de dados:
+
+- `Cliente`;
+- `Veiculo`;
+- `Registro_Estacionamento`;
+- `Vaga`;
+- `Setor`;
+- `Dispositovo_Detecção`.
+
+O resultado apresenta, para cada registro de estacionamento, o nome do cliente, a placa e o modelo do veículo, o código da vaga, o setor, o ID do dispositivo de detecção e as datas e horários de entrada e saída.
+
+São retornadas sete linhas, uma para cada registro de estacionamento.
+
+Essa consulta permite visualizar em conjunto as principais informações relacionadas à utilização do estacionamento.
+
+**5. Veículos com mais de um registro de estacionamento**
+
+A última consulta utiliza `COUNT`, `GROUP BY` e `HAVING` para agrupar os registros de estacionamento por veículo e identificar aqueles que possuem mais de um registro.
+
+O resultado apresenta o ID do veículo, sua placa e a quantidade de registros de estacionamento encontrados.
+
+Com os dados cadastrados, são retornados dois veículos:
+
+- ABC1D23: 2 registros de estacionamento.
+- GHI7J89: 2 registros de estacionamento.
+
+Os demais veículos possuem apenas um registro cada e, por isso, não aparecem no resultado.
+
+Essa consulta demonstra como utilizar agrupamentos e condições sobre os grupos para identificar veículos com maior histórico de utilização do estacionamento.
 
 ---
 
@@ -203,5 +305,7 @@ Para configurar o banco de dados a partir do zero, recomenda-se executar os arqu
 5. `usuarios_roles.sql` — cria os usuários, a ROLE e configura as permissões.
 
 **Importante:** o arquivo `script_projeto.sql` deve ser executado somente quando houver intenção de reconstruir o banco do zero, pois ele remove o banco `mydb` existente antes de criá-lo novamente.
+
+O arquivo consultas_join.sql também deve ser executado apenas uma vez após a inserção dos dados iniciais, pois adiciona registros complementares ao banco.
 
 ---
