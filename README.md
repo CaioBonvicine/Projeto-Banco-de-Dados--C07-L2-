@@ -144,6 +144,8 @@ São inseridos, no mínimo, cinco registros em cada uma das seis tabelas:
 - Vaga;
 - Registro_Estacionamento.
 
+As inserções são realizadas dentro de uma transação, iniciada por `START TRANSACTION` e finalizada pelo comando `COMMIT`, que confirma as operações realizadas.
+
 **`manipulacao_dados.sql`**
 
 Script utilizado para demonstrar comandos de manipulação de dados (DML), por meio de `INSERT`, `UPDATE` e `DELETE`.
@@ -258,6 +260,11 @@ São retornadas sete linhas, correspondentes aos sete registros de estacionament
 
 Um mesmo veículo pode aparecer mais de uma vez, pois cada linha representa uma utilização de vaga em determinado momento.
 
+Por exemplo:
+
+- O veículo ABC1D23 utilizou as vagas A-01 e VIP-01.
+- O veículo GHI7J89 utilizou as vagas VIP-01 e A-01.
+
 Esse resultado demonstra o relacionamento N:M entre veículos e vagas.
 
 **4. Consulta completa das informações do estacionamento**
@@ -292,6 +299,130 @@ Os demais veículos possuem apenas um registro cada e, por isso, não aparecem n
 
 Essa consulta demonstra como utilizar agrupamentos e condições sobre os grupos para identificar veículos com maior histórico de utilização do estacionamento.
 
+**`triggers.sql`**
+
+Script responsável pela criação de três Triggers que automatizam ações e aplicam regras durante a inserção de registros no banco de dados.
+
+Os Triggers implementados são:
+
+**1. `placa_maiuscula` — Padronização das placas**
+
+É executado antes da inserção de um veículo (`BEFORE INSERT`), convertendo automaticamente sua placa para letras maiúsculas por meio de `UPPER(NEW.placa)`.
+
+No teste, é inserido um veículo com a placa `xyz9a87`. Após a execução do Trigger, a consulta apresenta a placa armazenada como `XYZ9A87`.
+
+**2. `ocupar_vaga` — Atualização automática da ocupação**
+
+É executado depois da inserção de um registro na tabela `Registro_Estacionamento` (`AFTER INSERT`).
+
+Quando o registro possui `data_hora_saida` igual a `NULL`, o Trigger atualiza a coluna `ocupação` da vaga correspondente para `1`, indicando que ela está ocupada.
+
+**3. `capacidade_setor` — Controle da capacidade dos setores**
+
+É executado antes da inserção de um setor (`BEFORE INSERT`).
+
+Caso a capacidade informada seja negativa, o Trigger altera automaticamente o valor para `0`, impedindo que o setor seja cadastrado com uma capacidade negativa.
+
+No teste, é inserido o setor `Setor Teste` com capacidade `-5`. Ao consultar o registro, a capacidade armazenada deve ser `0`.
+
+Os testes do arquivo demonstram a padronização de placas e o tratamento de capacidades negativas, enquanto o Trigger de ocupação automatiza a atualização da vaga após uma entrada.
+
+**`views.sql`**
+
+Script responsável pela criação de três Views, que armazenam consultas SQL para facilitar a visualização das informações do estacionamento.
+
+As Views implementadas são:
+
+**1. `vw_vagas_livres` — Consulta de vagas disponíveis**
+
+Apresenta somente as vagas cuja coluna `ocupação` possui valor `0`.
+
+O resultado mostra o código de cada vaga e o setor ao qual ela pertence.
+
+Essa consulta permite identificar rapidamente as vagas disponíveis em cada setor do estacionamento.
+
+**2. `vw_clientes_veiculos` — Consulta de clientes e veículos**
+
+Relaciona as tabelas `Cliente` e `Veiculo` por meio de um `INNER JOIN`.
+
+O resultado apresenta o nome e o telefone do cliente, a placa e o modelo do veículo.
+
+Essa View facilita a consulta dos veículos associados a cada cliente.
+
+**3. `vw_veiculos_estacionados` — Consulta de veículos no estacionamento**
+
+Relaciona as tabelas `Registro_Estacionamento`, `Veiculo` e `Vaga`.
+
+A consulta considera somente os registros cuja `data_hora_saida` está igual a `NULL`, ou seja, veículos que ainda não possuem uma saída registrada.
+
+O resultado apresenta a placa do veículo, o código da vaga ocupada e a data e horário de entrada.
+
+Essa View permite identificar quais veículos ainda estão registrados dentro do estacionamento.
+
+Ao final do script, são executados comandos `SELECT` para consultar as três Views e visualizar seus resultados.
+
+**`procedures.sql`**
+
+Script responsável pela criação de três Procedures, que armazenam operações para facilitar a execução de tarefas relacionadas ao estacionamento.
+
+As Procedures implementadas são:
+
+**1. `sp_cadastrar_cliente` — Cadastro de clientes**
+
+Recebe o nome, o CPF e o telefone de um cliente por meio de parâmetros `IN`.
+
+Em seguida, executa um `INSERT` na tabela `Cliente`, realizando o cadastro das informações recebidas.
+
+No teste, é cadastrado o cliente Fernanda Rocha, e uma consulta verifica se seus dados foram armazenados corretamente.
+
+**2. `sp_registrar_entrada` — Registro de entrada de veículos**
+
+Recebe o ID do veículo e o ID da vaga utilizados.
+
+A Procedure registra uma nova entrada na tabela `Registro_Estacionamento`, utilizando `NOW()` para preencher a data e o horário atuais e deixando a data de saída como `NULL`.
+
+No teste, é registrada a entrada do veículo de ID 1 na vaga de ID 1. Em seguida, a View `vw_veiculos_estacionados` é consultada para verificar os veículos que possuem registros de estacionamento em aberto.
+
+**3. `sp_registrar_saida` — Registro de saída de veículos**
+
+Recebe o ID do registro de estacionamento e o ID da vaga.
+
+A Procedure atualiza a data e o horário de saída do registro informado utilizando `NOW()` e, em seguida, altera a ocupação da vaga indicada para `0`, liberando-a.
+
+No teste, são informados os IDs 4 para o registro e para a vaga. Uma consulta posterior verifica o registro de estacionamento atualizado.
+
+**`functions.sql`**
+
+Script responsável pela criação de três Functions, que recebem parâmetros e retornam valores relacionados ao funcionamento do estacionamento.
+
+As Functions implementadas são:
+
+**1. `fn_tempo_permanencia` — Cálculo do tempo de permanência**
+
+Recebe as datas e os horários de entrada e saída de um veículo.
+
+Utiliza `TIMESTAMPDIFF` para calcular a diferença entre os dois horários em minutos e retorna esse valor.
+
+No teste, são utilizados os horários de entrada `08:00` e saída `09:30`, resultando em uma permanência de 90 minutos.
+
+**2. `fn_valor_estacionamento` — Cálculo do valor do estacionamento**
+
+Recebe as datas e os horários de entrada e saída de um veículo e calcula o valor a pagar considerando R$ 10,00 por hora.
+
+A fórmula utilizada considera a diferença em horas retornada por `TIMESTAMPDIFF`, soma uma hora e multiplica o resultado por R$ 10,00.
+
+No teste com entrada às `08:00` e saída às `09:30`, o cálculo retorna R$ 20,00.
+
+**3. `fn_vagas_livres_setor` — Consulta da quantidade de vagas livres por setor**
+
+Recebe o ID de um setor e consulta a tabela `Vaga` para contar quantas vagas possuem ocupação igual a `0` dentro daquele setor.
+
+O resultado é retornado como um número inteiro, permitindo identificar a quantidade de vagas disponíveis em uma determinada área do estacionamento.
+
+No teste, é consultado o setor de ID 1.
+
+Ao final do arquivo, são executados comandos `SELECT` para demonstrar o funcionamento das três Functions.
+
 ---
 
 ## ▶️ Ordem de Execução dos Scripts
@@ -303,9 +434,15 @@ Para configurar o banco de dados a partir do zero, recomenda-se executar os arqu
 3. `manipulacao_dados.sql` — demonstra as operações de manipulação de dados.
 4. `consultas_join.sql` — adiciona os dados complementares e executa as consultas com JOIN.
 5. `usuarios_roles.sql` — cria os usuários, a ROLE e configura as permissões.
+6. `triggers.sql` — cria os Triggers e executa os testes de padronização de placas e capacidade dos setores.
+7. `views.sql` — cria as Views e executa as consultas de visualização.
+8. `procedures.sql` — cria as Procedures e executa os testes de cadastro, entrada e saída.
+9. `functions.sql` — cria as Functions e executa os testes de cálculo e consulta.
 
 **Importante:** o arquivo `script_projeto.sql` deve ser executado somente quando houver intenção de reconstruir o banco do zero, pois ele remove o banco `mydb` existente antes de criá-lo novamente.
 
-O arquivo consultas_join.sql também deve ser executado apenas uma vez após a inserção dos dados iniciais, pois adiciona registros complementares ao banco.
+O arquivo `consultas_join.sql` deve ser executado apenas uma vez após a inserção dos dados iniciais, pois adiciona registros complementares ao banco.
+
+Os arquivos `triggers.sql` e `procedures.sql` também possuem comandos de teste que inserem ou modificam registros. Portanto, seus testes alteram os dados do banco e não devem ser repetidos sem antes considerar essas alterações.
 
 ---
