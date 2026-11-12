@@ -327,6 +327,41 @@ No teste, é inserido o setor `Setor Teste` com capacidade `-5`. Ao consultar o 
 
 Os testes do arquivo demonstram a padronização de placas e o tratamento de capacidades negativas, enquanto o Trigger de ocupação automatiza a atualização da vaga após uma entrada.
 
+**`triggerExtra.sql`**
+
+Script responsável pela implementação de uma Trigger extra para automatizar a liberação das vagas após a saída dos veículos do estacionamento.
+
+A Trigger implementada é:
+
+**1. `liberar_vaga` — Liberação automática de vagas**
+
+É executada após uma atualização na tabela `Registro_Estacionamento` (`AFTER UPDATE`).
+
+Quando o campo `data_hora_saida` é alterado de `NULL` para uma data e horário de saída, a Trigger atualiza automaticamente a coluna `ocupação` da vaga correspondente para `0`, indicando que ela está livre.
+
+Essa implementação complementa o Trigger `ocupar_vaga`, presente no arquivo `triggers.sql`, permitindo que a ocupação seja atualizada automaticamente tanto na entrada quanto na saída dos veículos.
+
+**Teste da implementação**
+
+Para demonstrar o funcionamento da Trigger, o script realiza uma simulação de entrada e saída de um veículo.
+
+Inicialmente, é inserido um registro de estacionamento para o veículo de ID 5 na vaga de ID 5, correspondente à vaga D-01.
+
+Após a inserção, a vaga é marcada como ocupada, apresentando o valor `1` na coluna `ocupação`.
+
+Em seguida, um comando `UPDATE` registra a saída do veículo, preenchendo o campo `data_hora_saida` com o horário atual por meio de `NOW()`.
+
+A Trigger `liberar_vaga` identifica essa atualização e altera automaticamente a ocupação da vaga para `0`.
+
+Dois comandos `SELECT` permitem verificar os resultados esperados:
+
+- Antes da saída, a vaga D-01 apresenta `ocupação = 1` (ocupada).
+- Após o registro da saída, a vaga D-01 apresenta `ocupação = 0` (livre).
+
+O teste é realizado dentro de uma transação, iniciada por `START TRANSACTION` e finalizada com `ROLLBACK`, para desfazer as alterações utilizadas na demonstração.
+
+Dessa forma, a implementação permite liberar automaticamente as vagas do estacionamento, sem a necessidade de executar um comando `UPDATE` adicional diretamente na tabela `Vaga`.
+
 **`views.sql`**
 
 Script responsável pela criação de três Views, que armazenam consultas SQL para facilitar a visualização das informações do estacionamento.
@@ -438,6 +473,7 @@ Para configurar o banco de dados a partir do zero, recomenda-se executar os arqu
 7. `views.sql` — cria as Views e executa as consultas de visualização.
 8. `procedures.sql` — cria as Procedures e executa os testes de cadastro, entrada e saída.
 9. `functions.sql` — cria as Functions e executa os testes de cálculo e consulta.
+10. `triggerExtra.sql` — cria a Trigger extra para liberação automática de vagas e executa o teste de entrada e saída de um veículo.
 
 **Importante:** o arquivo `script_projeto.sql` deve ser executado somente quando houver intenção de reconstruir o banco do zero, pois ele remove o banco `mydb` existente antes de criá-lo novamente.
 
