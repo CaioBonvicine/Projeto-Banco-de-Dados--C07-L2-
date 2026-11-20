@@ -47,9 +47,8 @@ if __name__ == "__main__":
 
             banco = cursor.fetchone()[0]
 
-            print("Conexão estabelecida com sucesso!")
-            print(f"Banco selecionado: {banco}")
-
+            print(f"Conexão estabelecida com {banco}!")
+            
         except Error as e:
             print(f"Erro ao verificar o banco: {e}")
 
