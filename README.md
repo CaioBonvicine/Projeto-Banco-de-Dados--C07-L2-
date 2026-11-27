@@ -482,3 +482,174 @@ O arquivo `consultas_join.sql` deve ser executado apenas uma vez após a inserç
 Os arquivos `triggers.sql` e `procedures.sql` também possuem comandos de teste que inserem ou modificam registros. Portanto, seus testes alteram os dados do banco e não devem ser repetidos sem antes considerar essas alterações.
 
 ---
+
+## 🐍 Integração com Python — Parte 3
+
+Na terceira parte do projeto, foi desenvolvida uma aplicação em Python integrada ao banco de dados MySQL. A aplicação permite realizar operações de gerenciamento das entidades do estacionamento por meio de um menu interativo no terminal, utilizando os dados armazenados no banco `mydb`.
+
+### Estrutura dos arquivos Python
+
+Os arquivos da aplicação estão organizados na pasta `python/`:
+
+```text
+python/
+├── connection_dao.py
+├── cliente_dao.py
+├── veiculo_dao.py
+├── setor_dao.py
+├── dispositivo_dao.py
+├── vaga_dao.py
+├── registro_estacionamento_dao.py
+├── consultas_dao.py
+├── main.py
+└── requirements.txt
+```
+
+**`connection_dao.py` — Conexão com o MySQL**
+
+Centraliza as configurações de acesso ao banco de dados em `DB_CONFIG` e disponibiliza duas funções principais:
+
+- `get_connection()`: estabelece a conexão utilizando `mysql.connector.connect(**DB_CONFIG)` e retorna a conexão ou `None` caso não seja possível conectar.
+- `close_connection(connection, cursor=None)`: fecha o cursor, quando fornecido, e depois a conexão.
+
+O arquivo também possui um teste de conexão que consulta `SELECT DATABASE()` e apresenta o nome do banco selecionado.
+
+A configuração utilizada na aplicação considera o banco `mydb`, o servidor `localhost`, a porta `3306` e o usuário `usuario_supervisor`. Caso as configurações locais do MySQL sejam diferentes, os valores de `DB_CONFIG` em `connection_dao.py` devem ser ajustados.
+
+**DAOs das entidades**
+
+Cada entidade possui um módulo DAO próprio, responsável por executar as operações no banco de dados:
+
+- **`cliente_dao.py`:** cadastro, listagem, busca por ID, nome e CPF, atualização e remoção de clientes.
+- **`veiculo_dao.py`:** cadastro, listagem, busca por ID, placa, modelo e cliente, atualização e remoção de veículos.
+- **`setor_dao.py`:** cadastro, listagem, busca por ID, nome e capacidade máxima, atualização e remoção de setores.
+- **`dispositivo_dao.py`:** cadastro, listagem, busca por ID e endereço MAC, atualização e remoção de dispositivos.
+- **`vaga_dao.py`:** cadastro, listagem, busca por ID, código, ocupação, setor e dispositivo, atualização e remoção de vagas.
+- **`registro_estacionamento_dao.py`:** cadastro, listagem, busca por ID, veículo, vaga, data e hora de entrada e registros em aberto, atualização e remoção de registros de estacionamento.
+
+Os DAOs utilizam comandos SQL parametrizados com `%s`, enviando os valores separadamente por tuplas. Nas operações que modificam dados, é utilizado `commit()` para confirmar as alterações e `rollback()` para desfazer a transação em caso de erro. As consultas utilizam `fetchall()` para obter vários registros e `fetchone()` para obter um único registro.
+
+As operações também possuem tratamento de erros e fechamento dos recursos utilizados por meio de `finally` e da função `close_connection()`.
+
+Na remoção de um registro de estacionamento que ainda está em aberto (`data_hora_saida` igual a `NULL`), a função `remover_registro()` consulta a vaga associada, libera sua ocupação e, em seguida, exclui o registro.
+
+### Operações CRUD
+
+A aplicação implementa as quatro operações CRUD para as entidades do sistema:
+
+- **Create:** cadastro de novos registros por meio de `INSERT`.
+- **Read:** listagem e busca de registros por meio de `SELECT`, com ou sem filtros `WHERE`.
+- **Update:** alteração de registros existentes por meio de `UPDATE`.
+- **Delete:** remoção de registros por meio de `DELETE`, utilizando filtros para identificar o registro que será excluído.
+
+As operações de atualização e remoção utilizam o ID ou os filtros correspondentes para identificar os registros. Nas operações de alteração, o retorno de `rowcount` permite verificar se alguma linha foi afetada.
+
+### Consultas JOIN na aplicação Python
+
+**`consultas_dao.py`** concentra três consultas `INNER JOIN`, utilizadas para demonstrar os relacionamentos do modelo:
+
+**1. `consultar_vagas_dispositivos()` — Relacionamento 1:1**
+
+Relaciona as tabelas `Vaga` e `Dispositovo_Detecção` por meio da chave estrangeira `Vaga.Dispositovo_Detecção_id`. O resultado apresenta o código da vaga e o ID do dispositivo associado.
+
+**2. `consultar_clientes_veiculos()` — Relacionamento 1:N**
+
+Relaciona as tabelas `Cliente` e `Veiculo` utilizando `Cliente.id = Veiculo.Cliente_id`. O resultado apresenta o nome do cliente, a placa e o modelo do veículo.
+
+**3. `consultar_veiculos_vagas()` — Relacionamento N:M**
+
+Relaciona `Veiculo`, `Registro_Estacionamento` e `Vaga` por meio de dois `INNER JOINs`. A tabela `Registro_Estacionamento` funciona como intermediária e permite consultar quais veículos utilizaram quais vagas, incluindo as datas e os horários de entrada e saída.
+
+### Menu interativo
+
+**`main.py`** é o arquivo principal da aplicação. Ele importa as funções dos DAOs e organiza a navegação por meio de menus e dicionários de ações.
+
+O menu principal permite acessar o gerenciamento de clientes, veículos, setores, dispositivos, vagas e registros de estacionamento, além das consultas JOIN. Para cada entidade, são disponibilizadas opções de cadastro, listagem, busca por filtros, atualização e remoção.
+
+O programa utiliza funções auxiliares para ler textos e números, validar a ocupação da vaga (`0` = livre e `1` = ocupada), apresentar os resultados e solicitar confirmação antes de realizar remoções.
+
+### Dependências
+
+O arquivo `requirements.txt` lista a biblioteca necessária para a conexão entre Python e MySQL:
+
+```text
+mysql-connector-python
+```
+
+### Como configurar e executar a aplicação Python
+
+**Pré-requisitos:**
+
+- Git;
+- Python 3;
+- MySQL Server;
+- MySQL Workbench.
+
+**1. Baixar o repositório**
+
+```bash
+git clone https://github.com/CaioBonvicine/Projeto-Banco-de-Dados--C07-L2-.git
+cd Projeto-Banco-de-Dados--C07-L2-
+```
+
+**2. Criar e configurar o banco de dados**
+
+Abra o MySQL Workbench, conecte-se ao servidor MySQL e execute os scripts SQL na ordem indicada na seção anterior. A execução de `usuarios_roles.sql` cria o usuário `usuario_supervisor` utilizado pela aplicação.
+
+**3. Criar o ambiente virtual**
+
+No terminal, a partir da pasta principal do repositório:
+
+```bash
+cd python
+python3 -m venv venv
+```
+
+**4. Ativar o ambiente virtual**
+
+No Linux/macOS:
+
+```bash
+source venv/bin/activate
+```
+
+No Windows (Prompt de Comando):
+
+```bat
+venv\Scripts\activate
+```
+
+**5. Instalar as dependências**
+
+Com o ambiente virtual ativado:
+
+```bash
+pip install -r requirements.txt
+```
+
+**6. Testar a conexão com o banco**
+
+```bash
+python connection_dao.py
+```
+
+Quando a conexão estiver configurada corretamente, o programa deverá apresentar uma mensagem indicando que a conexão foi estabelecida e informar o banco selecionado (`mydb`).
+
+**7. Executar a aplicação**
+
+```bash
+python main.py
+```
+
+O menu principal será exibido no terminal. Caso a conexão falhe, verifique se o servidor MySQL está ativo, se os scripts de criação do banco e de usuários foram executados e se os valores de `DB_CONFIG` correspondem à configuração local.
+
+### Testes de integração Python e MySQL Workbench
+
+A integração pode ser verificada nos dois sentidos:
+
+1. Realizar um cadastro ou uma atualização pelo menu Python e consultar os dados no MySQL Workbench para confirmar a alteração no banco.
+2. Alterar um registro diretamente pelo MySQL Workbench e realizar uma nova consulta pelo menu Python para verificar o valor atualizado.
+
+O arquivo `verificar_dados.sql` pode ser utilizado no MySQL Workbench para consultar os registros das seis tabelas e conferir os dados armazenados. Ele contém apenas comandos `SELECT`, portanto pode ser executado sempre que necessário sem modificar os dados.
+
+O ambiente virtual `venv/` é criado localmente durante a configuração e não precisa ser enviado ao repositório.
